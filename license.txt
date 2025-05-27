@@ -1,0 +1,8 @@
+Model Information:
+* title:	MQ 9 Reaper No Decals
+* source:	https://sketchfab.com/3d-models/mq-9-reaper-no-decals-2b7a2affc49f48059addd6eceebb00f0
+* author:	faintastic (https://sketchfab.com/faintastic)
+
+Model License:
+* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
+* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works
