@@ -1,0 +1,418 @@
+// Create a 3x3 reference matrix based on longitude and latitude
+script Array<double> matrixRef(double refLon, double refLat)
+{
+    Array<double> R = Array<double>();
+    double c11 = -MATH.Sin(refLon);
+    R.PushBack(c11);
+    double c12 = MATH.Cos(refLon);
+    R.PushBack(c12);
+    double c13 = 0;
+    R.PushBack(c13);
+    
+    double c21 = -MATH.Sin(refLat)*MATH.Cos(refLon);
+    R.PushBack(c21);
+    double c22 = -MATH.Sin(refLat)*MATH.Sin(refLon);
+    R.PushBack(c22);
+    double c23 = MATH.Cos(refLat);
+    R.PushBack(c23);
+    
+    double c31 = MATH.Cos(refLat)*MATH.Cos(refLon);
+    R.PushBack(c31);
+    double c32 = MATH.Cos(refLat)*MATH.Sin(refLon);
+    R.PushBack(c32);
+    double c33 = MATH.Sin(refLat);
+    R.PushBack(c33);
+    
+    return R;
+}
+end_script
+
+// Flatten a 2D matrix (Array<Array<double>>) into 1D Array<double>
+script Array<double> matrixFlatten(Array<Array<double>> A1)
+{
+    int m1 = A1.Size();
+    if (m1 == 0) {
+        writeln_d("Can't flatten a matrix with 0 rows");
+        return null;
+    }
+
+    int n1 = A1[0].Size();
+    if (n1 == 0) {
+        writeln_d("Can't flatten a matrix with 0 columns");
+        return null;
+    }
+
+    Array<double> A2 = Array<double>();
+    for (int i = 1; i <= m1; i += 1) {
+        for (int j = 1; j <= n1; j += 1) {
+            A2[n1 * (i - 1) + (j - 1)] = A1[i - 1][j - 1];
+        }
+    }
+
+    return A2;
+}
+end_script
+
+// Unflatten a 1D matrix (Array<double>) into a 2D matrix (Array<Array<double>>)
+script Array<Array<double>> matrixUnflatten(Array<double> A1, int m2, int n2)
+{
+    int m1 = A1.Size();
+    if (m1 == 0) {
+        writeln_d("Can't unflatten a matrix with no data");
+        return null;
+    }
+
+    if (m1 != m2 * n2) {
+        writeln_d("Invalid resultant matrix size");
+        return null;
+    }
+
+    Array<Array<double>> A2 = Array<Array<double>>();
+    for (int i = 1; i <= m2; i += 1) {
+        Array<double> A2_i = Array<double>();
+        for (int j = 1; j <= n2; j += 1) {
+            A2_i[j - 1] = A1[n2 * (i - 1) + (j - 1)];
+        }
+        A2[i - 1] = A2_i;
+    }
+
+    return A2;
+}
+end_script
+
+// Transpose a 2D matrix (swap rows and columns)
+script Array<Array<double>> matrixTranspose(Array<Array<double>> A1)
+{
+    int m1 = A1.Size();
+    if (m1 == 0) {
+        writeln_d("Can't transpose a matrix with 0 rows");
+        return null;
+    }
+
+    int n1 = A1[0].Size();
+    if (n1 == 0) {
+        writeln_d("Can't transpose a matrix with 0 columns");
+        return null;
+    }
+
+    Array<Array<double>> A1T = Array<Array<double>>();
+    for (int i = 0; i < n1; i += 1) {
+        Array<double> A1T_i = Array<double>();
+        for (int j = 0; j < m1; j += 1) {
+            A1T_i[j] = A1[j][i];
+        }
+        A1T[i] = A1T_i;
+    }
+
+    return A1T;
+}
+end_script
+
+// Multiply two matrices A1 and A2 (2D arrays)
+script Array<Array<double>> matrixMultiply(Array<Array<double>> A1, Array<Array<double>> A2)
+{
+    int m1 = A1.Size();
+    int m2 = A2.Size();
+
+    if (m1 == 0 || m2 == 0) {
+        writeln_d("Can't multiply a matrix with 0 rows");
+        return null;
+    }
+
+    int n1 = A1[0].Size();
+    int n2 = A2[0].Size();
+
+    if (n1 == 0 || n2 == 0) {
+        writeln_d("Can't multiply a matrix with 0 columns");
+        return null;
+    }
+
+    if (m2 != n1) {
+        writeln_d("Can't multiply matrices with mismatched sizes");
+        return null;
+    }
+
+    // Transpose A2 to simplify dot product computation
+    Array<Array<double>> A2T = matrixTranspose(A2);
+
+    Array<Array<double>> A3 = Array<Array<double>>();
+    for (int i = 0; i < m1; i += 1) {
+        Array<double> A1_i = A1[i];
+        Array<double> A3_i = Array<double>();
+
+        for (int j = 0; j < n2; j += 1) {
+            Array<double> A2T_j = A2T[j];
+            double A3_ij = 0;
+
+            for (int k = 0; k < m2; k += 1) {
+                A3_ij += A1_i[k] * A2T_j[k];
+            }
+
+            A3_i[j] = A3_ij;
+        }
+
+        A3[i] = A3_i;
+    }
+
+    return A3;
+}
+end_script
+
+// Compute the adjoint of a 3x3 matrix
+script Array<Array<double>> matrixAdjoint3(Array<Array<double>> A)
+{
+    Array<Array<double>> C = Array<Array<double>>();
+
+    for (int i = 1; i <= 3; i += 1) {
+        Array<double> C_i = Array<double>();
+
+        for (int j = 1; j <= 3; j += 1) {
+            Array<double> M_ij = Array<double>();
+
+            for (int ii = 1; ii <= 3; ii += 1) {
+                for (int jj = 1; jj <= 3; jj += 1) {
+                    if (ii != i && jj != j) {
+                        M_ij.PushBack(A[ii - 1][jj - 1]);
+                    }
+                }
+            }
+
+            // Cofactor calculation for position (i,j)
+            double cofactor = MATH.Pow(-1, i + j) * (M_ij[0] * M_ij[3] - M_ij[1] * M_ij[2]);
+            C_i[j - 1] = cofactor;
+        }
+
+        C[i - 1] = C_i;
+    }
+
+    return matrixTranspose(C);
+}
+end_script
+
+// Compute the determinant of a 3x3 matrix
+script double matrixDeterminant3(Array<Array<double>> A)
+{
+    double det = (
+        A[0][0] * A[1][1] * A[2][2] +
+        A[0][1] * A[1][2] * A[2][0] +
+        A[0][2] * A[1][0] * A[2][1] -
+        A[0][2] * A[1][1] * A[2][0] -
+        A[0][0] * A[1][2] * A[2][1] -
+        A[0][1] * A[1][0] * A[2][2]
+    );
+    return det;
+}
+end_script
+
+// Compute the inverse of a 3x3 matrix
+script Array<Array<double>> matrixInverse3(Array<Array<double>> A)
+{
+    writeln_d(A);
+    Array<Array<double>> adjA = matrixAdjoint3(A);
+    double detA = matrixDeterminant3(A);
+
+    Array<Array<double>> C = Array<Array<double>>();
+    for (int i = 1; i <= 3; i += 1) {
+        Array<double> C_i = Array<double>();
+        for (int j = 1; j <= 3; j += 1) {
+            C_i[j - 1] = adjA[i - 1][j - 1] / detA;
+        }
+        C[i - 1] = C_i;
+    }
+
+    return C;
+}
+end_script
+
+// Main TDOA script
+script Array<double> tdoa(Map<string, double> sig2noise)
+{
+    Array<double> J1 = Array<double>();
+    Array<double> J1T = Array<double>();
+    Array<double> C1 = Array<double>();
+    Array<double> invC1 = Array<double>();
+    Array<double> R = Array<double>();
+    Array<double> ENU = Array<double>();
+
+    double avgTargetRange = 0;
+    double avgSNR = 0;
+    double numContributors = 0;
+
+    for (int i = 0; i < wsfSimulation.PlatformCount(); i = i + 1)
+    {
+        WsPlatform p = wsfSimulation.PlatformEntry(i);
+
+        if (p.Side() == "china")
+        {
+            if (p.CategoryMemberOf("FFG") || p.CategoryMemberOf("DDG") || p.CategoryMemberOf("CG"))
+            {
+                WsPlatform target = p;
+                writeln_d("NAME: ", target.Name(), ", LAT: ", target.Latitude(), ", LON: ", target.Longitude(), ", ALT: ", target.Altitude());
+
+                double targetX = target.Location().X();
+                double targetY = target.Location().Y();
+                double targetZ = target.Location().Z();
+
+                WsPlatform nextgen = wsfSimulation.FindPlatform("nextgen");
+                writeln_d("MQ-NEXT LAT: ", nextgen.Latitude(), ", LON: ", nextgen.Longitude(), ", ALT: ", nextgen.Altitude());
+
+                double nextgenX = nextgen.Location().X();
+                double nextgenY = nextgen.Location().Y();
+                double nextgenZ = nextgen.Location().Z();
+
+                double range2target = nextgen.SlantRangeTo(target.Location());
+                writeln_d("RANGE TO TARGET: ", range2target);
+
+                // ECEF coordinate differences
+                Array<double> Diff = Array<double>();
+                double diffX = targetX - nextgenX;
+                Diff.PushBack(diffX);
+
+                double diffY = targetY - nextgenY;
+                Diff.PushBack(diffY);
+
+                double diffZ = targetZ - nextgenZ;
+                Diff.PushBack(diffZ);
+
+                writeln_d("ECEF DIFF ", Diff);
+
+                // Convert ECEF to ENU using reference matrix
+                double nextgenLat = nextgen.Latitude();
+                double nextgenLon = nextgen.Longitude();
+                R = matrixRef(nextgenLon, nextgenLat);
+
+                // Flatten and multiply R * Diff to get ENU vector
+                ENU = matrixFlatten(matrixMultiply(
+                    matrixUnflatten(R, 3, R.Size() / 3),
+                    matrixUnflatten(Diff, 3, Diff.Size() / 3)
+                ));
+
+                // Log ENU vector components
+                writeln_d("X diff: ", ENU.Get(0));
+                writeln_d("Y diff: ", ENU.Get(1));
+                writeln_d("Z diff: ", ENU.Get(2));
+
+                // Compute range resolution using sensor bandwidth
+                double range_rez = 0;
+                for (int i = 0; i < target.SensorCount(); i = i + 1) {
+                    WsSensor sensor = target.SensorEntry(i);
+                    if (sensor.Name().Contains("passive")) {
+                        double bandwidth = sensor.Rcvr(0).Bandwidth();
+                        range_rez = MATH.LIGHT_SPEED() / bandwidth;
+                    }
+                }
+
+                // If signal-to-noise ratio isn't valid or missing, fill with zeros
+                if (sig2noise.IsNull() || !sig2noise.Exists(target.Name())) {
+                    J1.PushBack(0);
+                    J1.PushBack(0);
+                    J1.PushBack(0);
+                }
+                else {
+                    writeln_d("SNR_dB: ", 10 * MATH.Log10(sig2noise[target.Name()]));
+
+                    // Push normalized ENU values into J1 vector
+                    J1.PushBack((ENU.Get(0) / range2target) / (range_rez / MATH.Sqrt(sig2noise[target.Name()])));
+                    J1.PushBack((ENU.Get(1) / range2target) / (range_rez / MATH.Sqrt(sig2noise[target.Name()])));
+                    J1.PushBack((ENU.Get(2) / range2target) / (range_rez / MATH.Sqrt(sig2noise[target.Name()])));
+                    
+                    // Accumulate stats
+                    avgSNR += sig2noise[target.Name()];
+                    avgTargetRange += target.SlantRangeTo(nextgen);
+                    numContributors += 1;
+                }
+            }
+        }
+    }
+
+    writeln_d("J1: ", J1);
+
+    // Transpose J1 to get J1T
+    J1T = matrixFlatten(matrixTranspose(matrixUnflatten(J1, J1.Size() / 3, 3)));
+    writeln_d("J1T: ", J1T);
+
+    // Compute covariance matrix C1 = J1T * J1
+    C1 = matrixFlatten(
+        matrixMultiply(
+            matrixUnflatten(J1T, J1T.Size() / 3, 3),
+            matrixUnflatten(J1, J1.Size() / 3, 3)
+        )
+    );
+    writeln_d("C1: ", C1);
+
+    // Invert the 3x3 covariance matrix
+    invC1 = matrixFlatten(matrixInverse3(matrixUnflatten(C1, 3, 3)));
+    writeln_d("INV C1: ", invC1);
+
+    writeln_d("TIME: ", TIME_NOW);
+
+    // Compute uncertainties in each ENU direction
+    double uncertaintyX = MATH.Sqrt(invC1.Get(0));
+    writeln_d("X UNCERT: ", uncertaintyX);
+
+    double uncertaintyY = MATH.Sqrt(invC1.Get(4));
+    writeln_d("Y UNCERT: ", uncertaintyY);
+
+    double uncertaintyZ = MATH.Sqrt(invC1.Get(8));
+    writeln_d("Z UNCERT: ", uncertaintyZ);
+
+    // Compute volume uncertainty
+    double uncertaintyVol = uncertaintyX * uncertaintyY * uncertaintyZ;
+    writeln_d("VOL UNCERT: ", uncertaintyVol);
+
+    // Finalize and return inverse covariance matrix with metadata
+    avgSNR /= numContributors;
+    invC1[9] = MATH.LinearToDB(avgSNR);
+
+    avgTargetRange /= numContributors;
+    invC1[10] = avgTargetRange;
+
+    return invC1;
+}
+end_script
+
+// Output TDOA results to file
+script void outputTDOA(FileIO tracksFile, Array<double> covariance)
+{
+    string aSensorName = "TDOA";
+    string aPlatformName = "red_tdoa";
+    string aTargetName = "nextgen";
+
+    Array<string> trackOutputLine = {
+        "${CASE:none}$", (string)TIME_NOW, aPlatformName, aSensorName, aTargetName
+    };
+
+    trackOutputLine.PushBack("updated");
+    trackOutputLine.PushBack("");
+    trackOutputLine.PushBack("");
+
+    double SNR = covariance[9];
+    trackOutputLine.PushBack((string)SNR);
+
+    // Compute spherical error probable radius
+    double R = MATH.Sqrt((covariance[0] + covariance[4] + covariance[8]) / 3);
+    double R0 = 1000;
+    double tq = MATH.Pow(MATH.E(), -1 * R / R0);
+    trackOutputLine.PushBack((string)tq);
+
+    trackOutputLine.PushBack("");
+
+    double targetRangeActual = covariance[10];
+    trackOutputLine.PushBack((string)targetRangeActual);
+
+    trackOutputLine.PushBack((string)R);
+
+    trackOutputLine.PushBack("");  // Padding or formatting line
+    trackOutputLine.PushBack("");  // More spacing or formatting
+    trackOutputLine.PushBack("");  // Possibly reserved for future data
+
+    // Join the line into a CSV-like string and write to the output file
+    string trackOutputStr = ",".Join(trackOutputLine) + "\n";
+    tracksFile.Write(trackOutputStr);
+}
+end_script
+
+# Scheduled execution directive (runs the TDOA script every minute)
+#execute at_interval_of 1 min
+# $<TDOA_BJAM:>$ tdoa();
+#end_execute
